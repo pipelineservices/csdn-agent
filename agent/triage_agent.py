@@ -1,16 +1,19 @@
-from typing import Any, Dict
+# agent/triage_agent.py
 
-from models.shared import LLMClient
+from models.shared import LLMClient, pretty_json
 from pipeline.memory import ConversationMemory
 from services.observability_service import get_observability_snapshot
+from pipeline.rag_engine import search_rag
 from . import rag_context
 
 
 class TriageAgent:
     """
-    Network SRE triage agent.
-    Takes user question + observability snapshot + RAG context
-    Returns structured markdown analysis.
+    Network SRE triage agent (Phase-2 + RAG).
+    Uses:
+      - Observability snapshot
+      - Network runbook
+      - RAG over network / TGW / connectivity docs
     """
 
     def __init__(self, llm: LLMClient | None = None, memory: ConversationMemory | None = None):
@@ -18,11 +21,14 @@ class TriageAgent:
         self.memory = memory or ConversationMemory()
 
     def handle(self, user_query: str) -> str:
-        # --- 1) Collect data --------------------------------------------------
+        # 1) Collect data
         observability = get_observability_snapshot()
-        runbook = rag_context.build_network_context()
+        runbook_ctx = rag_context.build_network_context()
 
-        # --- 2) Construct system directive -----------------------------------
+        # 2) RAG hits for network domain
+        rag_hits = search_rag(user_query, domain="network", top_k=3)
+
+        # 3) System directive
         system_msg = {
             "role": "system",
             "content": (
@@ -30,7 +36,8 @@ class TriageAgent:
                 "You will receive:\n"
                 "- User question\n"
                 "- Observability snapshot (JSON)\n"
-                "- Network runbook\n\n"
+                "- Network runbook\n"
+                "- RAG hits from network troubleshooting knowledge\n\n"
                 "You must:\n"
                 "1) Summarize what seems to be happening.\n"
                 "2) Propose a likely root-cause hypothesis.\n"
@@ -40,33 +47,31 @@ class TriageAgent:
             ),
         }
 
-        # --- 3) User payload --------------------------------------------------
-        context_block = {
-            "observability": observability,
-            "runbook": runbook,
-        }
+        # 4) Build context block
+        context_block = pretty_json(
+            {
+                "observability": observability,
+                "runbook": runbook_ctx,
+                "rag_hits": rag_hits,
+            }
+        )
 
         user_msg = {
             "role": "user",
             "content": (
                 f"User question:\n{user_query}\n\n"
-                f"Context (JSON):\n{context_block}"
+                f"=== Network Context (JSON) ===\n{context_block}"
             ),
         }
 
-        # --- 4) Build full conversation context -------------------------------
-        full_history = []
-        for msg in self.memory.get_history():
-            full_history.append(
-                {"role": msg["role"], "content": msg["content"]}
-            )
+        # 5) Full conversation history
+        history = self.memory.as_list()
+        messages = [system_msg] + history + [user_msg]
 
-        messages = [system_msg] + full_history + [user_msg]
-
-        # --- 5) LLM call -------------------------------------------------------
+        # 6) LLM call
         answer = self.llm.chat(messages)
 
-        # --- 6) Save memory ----------------------------------------------------
+        # 7) Save memory
         self.memory.add_user(user_query)
         self.memory.add_assistant(answer)
 
