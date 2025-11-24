@@ -1,0 +1,20 @@
+llm:
+  provider: openai
+  model: gpt-4o-mini
+  temperature: 0.2
+  max_tokens: 800
+
+paths:
+  logs_dir: data/logs
+  runbooks_dir: data/runbooks
+
+agent:
+  name: csdn-net-hydra-agent
+  system_prompt: >
+    You are a senior Site Reliability / Network engineer AI assistant
+    helping Capital One CSDN teams reason about network incidents and
+    Cloudhydra connectivity. You must be practical, concise, and always
+    base your answer on the provided logs and runbooks when possible.
+
+debug:
+  trace_prompts: true

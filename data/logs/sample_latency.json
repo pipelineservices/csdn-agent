@@ -1,0 +1,18 @@
+[
+  {
+    "metric": "p95_latency_ms",
+    "service": "cloudhydra-api",
+    "region": "us-east-1",
+    "value": 920,
+    "threshold": 400,
+    "timestamp": "2025-01-10T15:30:00Z"
+  },
+  {
+    "metric": "p99_latency_ms",
+    "service": "network-gateway",
+    "region": "us-east-1",
+    "value": 1100,
+    "threshold": 600,
+    "timestamp": "2025-01-10T15:30:00Z"
+  }
+]

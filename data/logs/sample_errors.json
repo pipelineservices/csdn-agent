@@ -1,0 +1,18 @@
+[
+  {
+    "id": "ERR-1001",
+    "service": "cloudhydra-api",
+    "region": "us-east-1",
+    "severity": "high",
+    "message": "5xx errors spike on /connectivity/check",
+    "timestamp": "2025-01-10T15:32:00Z"
+  },
+  {
+    "id": "ERR-1002",
+    "service": "network-gateway",
+    "region": "us-east-1",
+    "severity": "medium",
+    "message": "Intermittent TLS handshake failures to internal services",
+    "timestamp": "2025-01-10T15:34:00Z"
+  }
+]
